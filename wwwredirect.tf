@@ -1,7 +1,16 @@
 resource "aws_s3_bucket" "www" {
   bucket = "www.${var.domain_name}"
 }
+resource "aws_s3_bucket_public_access_block" "www" {
+  bucket = aws_s3_bucket.www.id
+
+  block_public_acls   = false
+  block_public_policy = false
+  ignore_public_acls = false
+  restrict_public_buckets = false
+}
 resource "aws_s3_bucket_policy" "www" {
+  depends_on = [aws_s3_bucket_public_access_block.www]
   bucket = aws_s3_bucket.www.id
   policy = <<POLICY
 {
@@ -27,10 +36,6 @@ resource "aws_s3_bucket_website_configuration" "www" {
   redirect_all_requests_to {
     host_name = var.domain_name
   }
-}
-resource "aws_s3_bucket_acl" "www" {
-  bucket = aws_s3_bucket.www.id
-  acl    = "private"
 }
 
 resource "aws_acm_certificate" "www" {

@@ -6,7 +6,16 @@ variable "dist_folder" {
 resource "aws_s3_bucket" "files" {
   bucket_prefix = "web-${var.deployment_name}-files"
 }
+resource "aws_s3_bucket_public_access_block" "files" {
+  bucket = aws_s3_bucket.files.id
+
+  block_public_acls   = false
+  block_public_policy = false
+  ignore_public_acls = false
+  restrict_public_buckets = false
+}
 resource "aws_s3_bucket_policy" "files" {
+  depends_on = [aws_s3_bucket_public_access_block.files]
   bucket = aws_s3_bucket.files.id
   policy = <<POLICY
 {
@@ -44,10 +53,6 @@ resource "aws_s3_bucket_cors_configuration" "files" {
     allowed_methods = ["GET"]
     allowed_origins = ["*"]
   }
-}
-resource "aws_s3_bucket_acl" "files" {
-  bucket = aws_s3_bucket.files.id
-  acl    = "private"
 }
 
 module "template_files" {
