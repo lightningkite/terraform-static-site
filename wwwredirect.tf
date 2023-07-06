@@ -74,6 +74,7 @@ resource "aws_cloudfront_origin_access_identity" "www" {
 resource "aws_cloudfront_distribution" "www" {
   enabled = true
   aliases = ["www.${var.domain_name}"]
+  depends_on = [aws_s3_bucket.www]
 
   origin {
     connection_attempts = 3

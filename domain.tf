@@ -62,6 +62,7 @@ resource "aws_cloudfront_origin_access_identity" "oai" {
   comment = "OAI for ${var.domain_name}"
 }
 resource "aws_cloudfront_distribution" "main" {
+  depends_on = [aws_s3_bucket.files]
   enabled             = true
   aliases             = [var.domain_name]
   default_root_object = "index.html"
