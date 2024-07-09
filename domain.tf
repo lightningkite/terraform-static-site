@@ -90,7 +90,7 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods         = ["GET", "HEAD", "OPTIONS"]
     target_origin_id       = "origin-${var.domain_name}"
     viewer_protocol_policy = "redirect-to-https" # other options - https only, http
-    response_headers_policy_id = aws_cloudfront_response_headers_policy.webapp_security_headers
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.webapp_security_headers.id
 
     forwarded_values {
       headers      = []
