@@ -3,6 +3,14 @@ variable "domain_name_zone" {
 }
 variable "domain_name" {
 }
+variable "external_script_sources" {
+  type = string
+  default = ""
+}
+variable "external_media_sources" {
+  type = string
+  default = "*"
+}
 variable "geo_restrictions_mode" {
   type = string
   default = "none"
@@ -115,5 +123,37 @@ resource "aws_cloudfront_distribution" "main" {
     acm_certificate_arn      = aws_acm_certificate.web.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2018"
+  }
+}
+
+resource "aws_cloudfront_response_headers_policy" "main" {
+  name = "webapp-security-headers"
+  security_headers_config {
+    content_type_options {
+      override = true
+    }
+    frame_options {
+      frame_option = "DENY"
+      override = true
+    }
+    referrer_policy {
+      referrer_policy = "same-origin"
+      override = true
+    }
+    xss_protection {
+      mode_block = true
+      protection = true
+      override = true
+    }
+    strict_transport_security {
+      access_control_max_age_sec = "63072000"
+      include_subdomains = true
+      preload = true
+      override = true
+    }
+    content_security_policy {
+      content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self'; object-src 'none'"
+      override = true
+    }
   }
 }
