@@ -11,6 +11,10 @@ variable "external_media_sources" {
   type = string
   default = "*"
 }
+variable "external_connections" {
+  type = string
+  default = "*"
+}
 variable "geo_restrictions_mode" {
   type = string
   default = "none"
@@ -128,7 +132,7 @@ resource "aws_cloudfront_distribution" "main" {
 }
 
 resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
-  name = "webapp-security-headers"
+  name = "webapp-security-headers-${replace(var.domain_name, "/[^a-zA-Z0-9\\-]/", "-")}"
   security_headers_config {
     content_type_options {
       override = true
@@ -153,7 +157,7 @@ resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
       override = true
     }
     content_security_policy {
-      content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self'; object-src 'none'"
+      content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src ${var.external_connections}"
       override = true
     }
   }
