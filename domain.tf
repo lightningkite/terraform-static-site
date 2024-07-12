@@ -3,17 +3,9 @@ variable "domain_name_zone" {
 }
 variable "domain_name" {
 }
-variable "external_script_sources" {
-  type = string
-  default = ""
-}
-variable "external_media_sources" {
-  type = string
-  default = "*"
-}
-variable "external_connections" {
-  type = string
-  default = "*"
+variable "content_security_policy" {
+  type = map(list(string))
+  default = {  }
 }
 variable "geo_restrictions_mode" {
   type = string
@@ -157,7 +149,8 @@ resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
       override = true
     }
     content_security_policy {
-      content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src ${var.external_connections}"
+      content_security_policy = join("; ", [for key, value in var.content_security_policy : "${key} ${join(" ", value)}"])
+      #       content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src ${var.external_connections}"
       override = true
     }
   }
