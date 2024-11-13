@@ -60,11 +60,16 @@ module "template_files" {
 
   base_dir = var.dist_folder
 }
+locals {
+  content_type_overrides = {
+    "apple-app-site-association" = "application/json"
+  }
+}
 resource "aws_s3_object" "app_storage" {
   for_each     = module.template_files.files
   bucket       = aws_s3_bucket.files.id
   key          = each.key
-  content_type = each.value.content_type
+  content_type = lookup(local.content_type_overrides, regex("[^\\/\\\\]+$", each.value.source_path), each.value.content_type)
 
   # The template_files module guarantees that only one of these two attributes
   # will be set for each file, depending on whether it is an in-memory template
