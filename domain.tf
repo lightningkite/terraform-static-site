@@ -1,14 +1,40 @@
-
 variable "domain_name_zone" {
 }
 variable "domain_name" {
 }
 variable "content_security_policy" {
   type = map(list(string))
-  default = {  }
+  default = {
+    default-src : [
+      "*",
+      "'unsafe-eval'",
+      "'wasm-unsafe-eval'",
+      "'unsafe-inline'",
+      "data:",
+      "mediastream:",
+      "blob:",
+      "filesystem:",
+      "about:",
+      "ws:",
+      "wss:",
+    ]
+    frame-src : [
+      "*",
+      "data:",
+      "blob:",
+    ]
+    form-action : [
+      "*"
+    ]
+    frame-ancestors : [
+      "*",
+      "data:",
+      "blob:",
+    ]
+  }
 }
 variable "geo_restrictions_mode" {
-  type = string
+  type    = string
   default = "none"
   validation {
     condition = contains([
@@ -24,7 +50,7 @@ variable "geo_restrictions_list" {
   default = []
 }
 variable "react_mode" {
-  type = bool
+  type    = bool
   default = false
 }
 
@@ -33,7 +59,7 @@ data "aws_route53_zone" "main" {
 }
 
 resource "aws_acm_certificate" "web" {
-  provider = aws.acm
+  provider          = aws.acm
   domain_name       = var.domain_name
   validation_method = "DNS"
 }
@@ -45,8 +71,8 @@ resource "aws_route53_record" "web" {
   ttl     = "300"
 }
 resource "aws_acm_certificate_validation" "web" {
-  provider = aws.acm
-  certificate_arn         = aws_acm_certificate.web.arn
+  provider        = aws.acm
+  certificate_arn = aws_acm_certificate.web.arn
   validation_record_fqdns = [aws_route53_record.web.fqdn]
 }
 resource "aws_route53_record" "web_cloudfront" {
@@ -68,7 +94,7 @@ resource "aws_cloudfront_origin_access_identity" "oai" {
 resource "aws_cloudfront_distribution" "main" {
   depends_on = [aws_s3_bucket.files]
   enabled             = true
-  aliases             = [var.domain_name]
+  aliases = [var.domain_name]
   default_root_object = "index.html"
 
   origin {
@@ -82,14 +108,14 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
   default_cache_behavior {
-    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
-    cached_methods         = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id       = "origin-${var.domain_name}"
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    cached_methods = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id           = "origin-${var.domain_name}"
     viewer_protocol_policy = "redirect-to-https" # other options - https only, http
     response_headers_policy_id = aws_cloudfront_response_headers_policy.webapp_security_headers.id
 
     forwarded_values {
-      headers      = []
+      headers = []
       query_string = true
 
       cookies {
@@ -112,7 +138,7 @@ resource "aws_cloudfront_distribution" "main" {
   restrictions {
     geo_restriction {
       restriction_type = var.geo_restrictions_mode
-      locations = var.geo_restrictions_list
+      locations        = var.geo_restrictions_list
     }
   }
 
@@ -131,25 +157,27 @@ resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
     }
     frame_options {
       frame_option = "DENY"
-      override = true
+      override     = true
     }
     referrer_policy {
       referrer_policy = "same-origin"
-      override = true
+      override        = true
     }
     xss_protection {
       mode_block = true
       protection = true
-      override = true
+      override   = true
     }
     strict_transport_security {
       access_control_max_age_sec = "63072000"
-      include_subdomains = true
-      preload = true
-      override = true
+      include_subdomains         = true
+      preload                    = true
+      override                   = true
     }
     content_security_policy {
-      content_security_policy = join("; ", [for key, value in var.content_security_policy : "${key} ${join(" ", value)}"])
+      content_security_policy = join("; ", [
+        for key, value in var.content_security_policy : "${key} ${join(" ", value)}"
+      ])
       #       content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src ${var.external_connections}"
       override = true
     }
