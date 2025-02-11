@@ -55,10 +55,22 @@ resource "aws_s3_bucket_cors_configuration" "files" {
   }
 }
 
+variable "create_robots_txt" {
+  type    = bool
+  default = true
+}
+
+resource "local_file" "robots-txt" {
+  count = var.create_robots_txt ? 1 : 0
+  content  = "User-agent: *\nDisallow: "
+  filename = "${var.dist_folder}/robots.txt"
+}
+
 module "template_files" {
   source = "hashicorp/dir/template"
 
   base_dir = var.dist_folder
+  depends_on = ["local_file.robots-txt"]
 }
 locals {
   content_type_overrides = {
