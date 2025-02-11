@@ -70,7 +70,7 @@ module "template_files" {
   source = "hashicorp/dir/template"
 
   base_dir = var.dist_folder
-  depends_on = ["local_file.robots-txt"]
+  depends_on = [local_file.robots-txt]
 }
 locals {
   content_type_overrides = {
