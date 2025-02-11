@@ -55,6 +55,17 @@ resource "aws_s3_bucket_cors_configuration" "files" {
   }
 }
 
+variable "create_robots_txt" {
+  type    = bool
+  default = true
+}
+
+resource "local_file" "robots-txt" {
+  count = var.create_robots_txt ? 1 : 0
+  content  = "User-agent: *\nDisallow: "
+  filename = "${var.dist_folder}/robots.txt"
+}
+
 locals {
   content_type_overrides = {
     "apple-app-site-association" = "application/json"
@@ -62,35 +73,35 @@ locals {
   # Taken from https://github.com/hashicorp/terraform-template-dir/blob/17b81de441645a94f4db1449fc8269cd32f26fde/variables.tf
   # with some additions for file types we need to support
   known_mime_types = {
-    ".3g2"    : "video/3gpp2", 
-    ".3gp"    : "video/3gpp", 
-    ".atom"   : "application/atom+xml", 
-    ".css"    : "text/css; charset=utf-8", 
-    ".eot"    : "application/vnd.ms-fontobject", 
-    ".gif"    : "image/gif", 
-    ".htm"    : "text/html; charset=utf-8", 
-    ".html"   : "text/html; charset=utf-8", 
-    ".ico"    : "image/vnd.microsoft.icon", 
-    ".jar"    : "application/java-archive", 
-    ".jpeg"   : "image/jpeg", 
-    ".jpg"    : "image/jpeg", 
-    ".js"     : "application/javascript", 
-    ".json"   : "application/json", 
-    ".jsonld" : "application/ld+json", 
-    ".otf"    : "font/otf", 
-    ".pdf"    : "application/pdf", 
-    ".png"    : "image/png", 
-    ".rss"    : "application/rss+xml", 
-    ".svg"    : "image/svg+xml", 
-    ".swf"    : "application/x-shockwave-flash", 
-    ".ttf"    : "font/ttf", 
-    ".txt"    : "text/plain; charset=utf-8", 
-    ".weba"   : "audio/webm", 
-    ".webm"   : "video/webm", 
-    ".webp"   : "image/webp", 
-    ".woff"   : "font/woff", 
-    ".woff2"  : "font/woff2", 
-    ".xhtml"  : "application/xhtml+xml", 
+    ".3g2"    : "video/3gpp2",
+    ".3gp"    : "video/3gpp",
+    ".atom"   : "application/atom+xml",
+    ".css"    : "text/css; charset=utf-8",
+    ".eot"    : "application/vnd.ms-fontobject",
+    ".gif"    : "image/gif",
+    ".htm"    : "text/html; charset=utf-8",
+    ".html"   : "text/html; charset=utf-8",
+    ".ico"    : "image/vnd.microsoft.icon",
+    ".jar"    : "application/java-archive",
+    ".jpeg"   : "image/jpeg",
+    ".jpg"    : "image/jpeg",
+    ".js"     : "application/javascript",
+    ".json"   : "application/json",
+    ".jsonld" : "application/ld+json",
+    ".otf"    : "font/otf",
+    ".pdf"    : "application/pdf",
+    ".png"    : "image/png",
+    ".rss"    : "application/rss+xml",
+    ".svg"    : "image/svg+xml",
+    ".swf"    : "application/x-shockwave-flash",
+    ".ttf"    : "font/ttf",
+    ".txt"    : "text/plain; charset=utf-8",
+    ".weba"   : "audio/webm",
+    ".webm"   : "video/webm",
+    ".webp"   : "image/webp",
+    ".woff"   : "font/woff",
+    ".woff2"  : "font/woff2",
+    ".xhtml"  : "application/xhtml+xml",
     ".xml"    : "application/xml",
     ".wasm"   : "application/wasm"
   }
@@ -100,6 +111,7 @@ module "template_files" {
 
   base_dir   = var.dist_folder
   file_types = local.known_mime_types
+  depends_on = ["local_file.robots-txt"]
 }
 resource "aws_s3_object" "app_storage" {
   for_each     = module.template_files.files
