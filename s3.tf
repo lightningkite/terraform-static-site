@@ -62,7 +62,7 @@ variable "create_robots_txt" {
 
 resource "local_file" "robots-txt" {
   count = var.create_robots_txt ? 1 : 0
-  content  = "User-agent: *\nDisallow: "
+  content  = "User-agent: *\nDisallow: /"
   filename = "${var.dist_folder}/robots.txt"
 }
 
