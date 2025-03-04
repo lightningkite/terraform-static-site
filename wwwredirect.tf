@@ -79,7 +79,7 @@ resource "aws_cloudfront_distribution" "www" {
   origin {
     connection_attempts = 3
     connection_timeout  = 10
-    domain_name         = aws_s3_bucket.www.website_endpoint
+    domain_name         = aws_s3_bucket_website_configuration.files.website_endpoint
     origin_id           = aws_s3_bucket.www.id
 
     custom_origin_config {
