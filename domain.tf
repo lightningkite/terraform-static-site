@@ -98,7 +98,7 @@ resource "aws_cloudfront_distribution" "main" {
   default_root_object = "index.html"
 
   origin {
-    domain_name = aws_s3_bucket.files.website_endpoint
+    domain_name = aws_s3_bucket_website_configuration.files.website_endpoint
     origin_id   = "origin-${var.domain_name}"
     custom_origin_config {
       http_port              = 80
