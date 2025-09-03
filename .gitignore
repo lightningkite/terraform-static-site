@@ -1,2 +1,4 @@
 .idea
 terraform-static-site.iml
+.terraform
+.terraform.lock.hcl

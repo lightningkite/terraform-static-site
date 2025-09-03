@@ -68,6 +68,7 @@ resource "local_file" "robots-txt" {
 
 module "template_files" {
   source = "hashicorp/dir/template"
+  version = "v1.0.2"
 
   base_dir = var.dist_folder
   depends_on = [local_file.robots-txt]
