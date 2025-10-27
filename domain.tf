@@ -53,6 +53,10 @@ variable "react_mode" {
   type    = bool
   default = false
 }
+variable "referrer_policy" {
+  type    = string
+  default = "same-origin"
+}
 
 data "aws_route53_zone" "main" {
   name = var.domain_name_zone
@@ -160,7 +164,7 @@ resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
       override     = true
     }
     referrer_policy {
-      referrer_policy = "same-origin"
+      referrer_policy = var.referrer_policy
       override        = true
     }
     xss_protection {
