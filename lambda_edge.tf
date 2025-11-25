@@ -8,7 +8,7 @@ variable "lambda_src_dir" {
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_dir  = var.lambda_src_dir # contains index.js + package.json
-  output_path = "./lambda.zip"
+  output_path = "${var.lambda_src_dir}/../lambda.zip"
 }
 
 resource "aws_iam_role" "lambda_edge_role" {
