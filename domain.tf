@@ -129,7 +129,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     lambda_function_association {
       event_type = "origin-response"
-      lambda_arn = aws_lambda_function.edge_lambda.arn
+      lambda_arn = aws_lambda_function.edge_lambda.qualified_arn
       include_body = false
     }
   }
