@@ -7,7 +7,7 @@ variable "lambda_src_dir" {
 # -------- ZIP THE LAMBDA CODE --------
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = var.dist_folder # contains index.js + package.json
+  source_dir  = var.lambda_src_dir # contains index.js + package.json
   output_path = "./lambda.zip"
 }
 
@@ -42,7 +42,7 @@ resource "aws_iam_role_policy_attachment" "s3_readonly" {
 
 # # -------- LAMBDA FUNCTION --------
 resource "aws_lambda_function" "edge_lambda" {
-  provider = aws.acm
+  provider = aws.east
   function_name = "AddOGTags"
   role          = aws_iam_role.lambda_edge_role.arn
   handler       = "index.handler"
