@@ -40,7 +40,7 @@ resource "aws_iam_role_policy_attachment" "s3_readonly" {
 
 resource "aws_lambda_function" "edge_lambda" {
   provider = aws.east
-  function_name = "AddOGTags"
+  function_name = "${var.deployment_name}-AddOGTags"
   role          = aws_iam_role.lambda_edge_role.arn
   handler       = "index.handler"
   runtime       = "nodejs22.x"
