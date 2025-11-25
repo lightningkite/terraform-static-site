@@ -4,14 +4,13 @@ variable "lambda_src_dir" {
   type = string
 }
 
-# -------- ZIP THE LAMBDA CODE --------
+# zip lambda code
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_dir  = var.lambda_src_dir # contains index.js + package.json
   output_path = "./lambda.zip"
 }
 
-# -------- IAM ROLE FOR LAMBDA --------
 resource "aws_iam_role" "lambda_edge_role" {
   name = "lambda_edge_execution_role"
 
@@ -30,7 +29,6 @@ resource "aws_iam_role" "lambda_edge_role" {
   })
 }
 
-# Attaches AWSLambdaBasicExecutionRole policy to role
 resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_edge_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
@@ -40,7 +38,6 @@ resource "aws_iam_role_policy_attachment" "s3_readonly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
 }
 
-# # -------- LAMBDA FUNCTION --------
 resource "aws_lambda_function" "edge_lambda" {
   provider = aws.east
   function_name = "AddOGTags"
@@ -56,5 +53,3 @@ resource "aws_lambda_function" "edge_lambda" {
   # Publish on creation/change
   publish = true
 }
-
-// arn:aws:lambda:us-east-1:961424819621:function:AddOGTags:4
