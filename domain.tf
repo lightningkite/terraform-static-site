@@ -118,6 +118,11 @@ resource "aws_cloudfront_distribution" "main" {
     viewer_protocol_policy = "redirect-to-https" # other options - https only, http
     response_headers_policy_id = aws_cloudfront_response_headers_policy.webapp_security_headers.id
 
+    # TTL settings - respect Cache-Control headers from origin
+    min_ttl     = 0          # Allow no-cache for index.html
+    default_ttl = 86400      # 1 day default for files without Cache-Control
+    max_ttl     = 31536000   # 1 year max for immutable assets
+
     forwarded_values {
       headers = []
       query_string = true
@@ -185,5 +190,21 @@ resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
       #       content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src ${var.external_connections}"
       override = true
     }
+  }
+}
+
+# Invalidate CloudFront cache after S3 files are updated
+# This ensures users get fresh content immediately after deployment
+resource "terraform_data" "cloudfront_invalidation" {
+  # Trigger invalidation when source files change (computed before upload, so stable during plan)
+  triggers_replace = {
+    files_hash = md5(join(",", [for k, v in module.template_files.files : v.digests.md5]))
+  }
+
+  # Ensure S3 uploads complete before invalidation
+  depends_on = [aws_s3_object.app_storage]
+
+  provisioner "local-exec" {
+    command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.main.id} --paths '/*'"
   }
 }
