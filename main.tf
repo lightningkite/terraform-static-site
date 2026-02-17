@@ -3,7 +3,7 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.89.0"
-      configuration_aliases = [ aws.east ]
+      configuration_aliases = [ aws.acm ]
     }
     random = {
       source  = "hashicorp/random"

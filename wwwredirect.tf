@@ -39,7 +39,7 @@ resource "aws_s3_bucket_website_configuration" "www" {
 }
 
 resource "aws_acm_certificate" "www" {
-  provider          = aws.east
+  provider          = aws.acm
   domain_name       = "www.${var.domain_name}"
   validation_method = "DNS"
 }
@@ -51,7 +51,7 @@ resource "aws_route53_record" "www" {
   ttl     = "300"
 }
 resource "aws_acm_certificate_validation" "www" {
-  provider                = aws.east
+  provider                = aws.acm
   certificate_arn         = aws_acm_certificate.www.arn
   validation_record_fqdns = [aws_route53_record.www.fqdn]
 }

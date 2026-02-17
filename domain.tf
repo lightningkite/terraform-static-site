@@ -63,7 +63,7 @@ data "aws_route53_zone" "main" {
 }
 
 resource "aws_acm_certificate" "web" {
-  provider          = aws.east
+  provider          = aws.acm
   domain_name       = var.domain_name
   validation_method = "DNS"
 }
@@ -75,7 +75,7 @@ resource "aws_route53_record" "web" {
   ttl     = "300"
 }
 resource "aws_acm_certificate_validation" "web" {
-  provider        = aws.east
+  provider        = aws.acm
   certificate_arn = aws_acm_certificate.web.arn
   validation_record_fqdns = [aws_route53_record.web.fqdn]
 }
