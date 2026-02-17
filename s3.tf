@@ -85,6 +85,24 @@ resource "aws_s3_object" "app_storage" {
     each.value.content_type
   )
 
+  # Cache-Control based on content hash detection:
+  # - Files with hashes (e.g., index-D4kpuNiu.js) can be cached forever (immutable)
+  # - Files without hashes should always revalidate (no-cache)
+  # Using exact hash lengths for safety (no false positives)
+  cache_control = (
+    # Vite-style hashes: name-HASH.ext where HASH is exactly 8 base64url chars
+    # e.g., index-D4kpuNiu.js - must contain at least one digit
+    can(regex("-[a-zA-Z0-9]{8}\\.[a-zA-Z0-9]+$", each.value.source_path)) &&
+    can(regex("-[a-zA-Z0-9]*[0-9][a-zA-Z0-9]*\\.", each.value.source_path))
+    ? "max-age=31536000, immutable" :
+    # Webpack-style hashes: name.HASH.ext where HASH is exactly 8 or 20 hex chars
+    can(regex("\\.[a-f0-9]{8}\\.[a-zA-Z0-9]+$", each.value.source_path)) ||
+    can(regex("\\.[a-f0-9]{20}\\.[a-zA-Z0-9]+$", each.value.source_path))
+    ? "max-age=31536000, immutable" :
+    # No hash detected - always revalidate to ensure fresh content
+    "no-cache"
+  )
+
   # The template_files module guarantees that only one of these two attributes
   # will be set for each file, depending on whether it is an in-memory template
   # rendering result or a static file on disk.
