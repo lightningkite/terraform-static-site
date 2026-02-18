@@ -19,7 +19,7 @@ data "archive_file" "lambda_zip" {
 
 resource "aws_iam_role" "lambda_edge_role" {
   count = var.lambda_src_dir != null ? 1 : 0
-  name  = "lambda_edge_execution_role"
+  name_prefix  = "lambda_edge_execution_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
