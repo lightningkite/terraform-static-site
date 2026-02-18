@@ -59,7 +59,14 @@ resource "aws_lambda_function" "edge_lambda" {
   source_code_hash = data.archive_file.lambda_zip[0].output_base64sha256
 
   timeout = 5
-
-  # Publish on creation/change
   publish = true
+
+  lifecycle {
+    prevent_destroy = false
+    create_before_destroy = true
+
+    replace_triggered_by = [
+      aws_cloudfront_distribution.main
+    ]
+  }
 }

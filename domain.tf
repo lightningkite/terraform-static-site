@@ -133,7 +133,7 @@ resource "aws_cloudfront_distribution" "main" {
     }
 
     dynamic "lambda_function_association" {
-      for_each = var.lambda_src_dir != null ? [1] : []
+      for_each = length(aws_lambda_function.edge_lambda) > 0 ? [1] : []
       content {
         event_type   = "origin-response"
         lambda_arn   = aws_lambda_function.edge_lambda[0].qualified_arn
