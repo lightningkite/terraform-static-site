@@ -64,9 +64,5 @@ resource "aws_lambda_function" "edge_lambda" {
   lifecycle {
     prevent_destroy = false
     create_before_destroy = true
-
-    replace_triggered_by = [
-      aws_cloudfront_distribution.main
-    ]
   }
 }
