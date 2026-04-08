@@ -33,6 +33,13 @@ variable "content_security_policy" {
     ]
   }
 }
+
+variable "cors_allowed_origins" {
+  description = "List of origins allowed to access assets via CORS."
+  type        = list(string)
+  default     = []
+}
+
 variable "geo_restrictions_mode" {
   type    = string
   default = "none"
@@ -168,6 +175,23 @@ resource "aws_cloudfront_distribution" "main" {
 
 resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
   name = "webapp-security-headers-${replace(var.domain_name, "/[^a-zA-Z0-9\\-]/", "-")}"
+
+  dynamic "cors_config" {
+    for_each = length(var.cors_allowed_origins) > 0 ? [1] : []
+    content {
+      access_control_allow_credentials = false
+      access_control_allow_headers {
+        items = ["*"]
+      }
+      access_control_allow_methods {
+        items = ["GET", "HEAD", "OPTIONS"]
+      }
+      access_control_allow_origins {
+        items = var.cors_allowed_origins
+      }
+      origin_override = true
+    }
+  }
   security_headers_config {
     content_type_options {
       override = true
