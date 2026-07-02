@@ -1,6 +1,8 @@
 variable "domain_name_zone" {
+  type = string
 }
 variable "domain_name" {
+  type = string
 }
 variable "content_security_policy" {
   type = map(list(string))
@@ -46,7 +48,7 @@ variable "geo_restrictions_mode" {
   }
 }
 variable "geo_restrictions_list" {
-  type = list(string)
+  type    = list(string)
   default = []
 }
 variable "react_mode" {
@@ -66,6 +68,7 @@ resource "aws_acm_certificate" "web" {
   provider          = aws.acm
   domain_name       = var.domain_name
   validation_method = "DNS"
+  lifecycle { create_before_destroy = true }
 }
 resource "aws_route53_record" "web" {
   zone_id = data.aws_route53_zone.main.zone_id
@@ -75,8 +78,8 @@ resource "aws_route53_record" "web" {
   ttl     = "300"
 }
 resource "aws_acm_certificate_validation" "web" {
-  provider        = aws.acm
-  certificate_arn = aws_acm_certificate.web.arn
+  provider                = aws.acm
+  certificate_arn         = aws_acm_certificate.web.arn
   validation_record_fqdns = [aws_route53_record.web.fqdn]
 }
 resource "aws_route53_record" "web_cloudfront" {
@@ -91,14 +94,35 @@ resource "aws_route53_record" "web_cloudfront" {
   }
 }
 
+# Cache policy for the static site. Replaces the legacy `forwarded_values` block:
+# cookies are never forwarded (they only fragment the cache on a static site),
+# while query strings remain in the cache key to preserve cache-busting behavior.
+# TTLs bound the origin's Cache-Control (min_ttl=0 lets index.html stay no-cache;
+# max_ttl allows immutable hashed assets to cache for a year).
+resource "aws_cloudfront_cache_policy" "static" {
+  name        = "static-cache-${replace(var.domain_name, "/[^a-zA-Z0-9\\-]/", "-")}"
+  min_ttl     = 0
+  default_ttl = 86400
+  max_ttl     = 31536000
 
-resource "aws_cloudfront_origin_access_identity" "oai" {
-  comment = "OAI for ${var.domain_name}"
+  parameters_in_cache_key_and_forwarded_to_origin {
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "none"
+    }
+    query_strings_config {
+      query_string_behavior = "all"
+    }
+    enable_accept_encoding_gzip   = true
+    enable_accept_encoding_brotli = true
+  }
 }
 resource "aws_cloudfront_distribution" "main" {
-  depends_on = [aws_s3_bucket.files]
+  depends_on          = [aws_s3_bucket.files]
   enabled             = true
-  aliases = [var.domain_name]
+  aliases             = [var.domain_name]
   default_root_object = "index.html"
 
   origin {
@@ -108,29 +132,16 @@ resource "aws_cloudfront_distribution" "main" {
       http_port              = 80
       https_port             = 443
       origin_protocol_policy = "http-only"
-      origin_ssl_protocols = ["TLSv1"]
+      origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
   default_cache_behavior {
-    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
-    cached_methods = ["GET", "HEAD", "OPTIONS"]
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD", "OPTIONS"]
     target_origin_id           = "origin-${var.domain_name}"
-    viewer_protocol_policy = "redirect-to-https" # other options - https only, http
+    viewer_protocol_policy     = "redirect-to-https" # other options - https only, http
     response_headers_policy_id = aws_cloudfront_response_headers_policy.webapp_security_headers.id
-
-    # TTL settings - respect Cache-Control headers from origin
-    min_ttl     = 0          # Allow no-cache for index.html
-    default_ttl = 86400      # 1 day default for files without Cache-Control
-    max_ttl     = 31536000   # 1 year max for immutable assets
-
-    forwarded_values {
-      headers = []
-      query_string = true
-
-      cookies {
-        forward = "all"
-      }
-    }
+    cache_policy_id            = aws_cloudfront_cache_policy.static.id
 
     dynamic "lambda_function_association" {
       for_each = length(aws_lambda_function.edge_lambda) > 0 ? [1] : []
@@ -160,9 +171,11 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.web.arn
+    # Reference the validation resource (not the certificate directly) so the
+    # distribution is not created until DNS validation has completed.
+    acm_certificate_arn      = aws_acm_certificate_validation.web.certificate_arn
     ssl_support_method       = "sni-only"
-    minimum_protocol_version = "TLSv1.2_2018"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 }
 

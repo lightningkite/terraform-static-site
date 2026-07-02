@@ -9,15 +9,15 @@ resource "aws_s3_bucket" "files" {
 resource "aws_s3_bucket_public_access_block" "files" {
   bucket = aws_s3_bucket.files.id
 
-  block_public_acls   = false
-  block_public_policy = false
-  ignore_public_acls = false
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
   restrict_public_buckets = false
 }
 resource "aws_s3_bucket_policy" "files" {
   depends_on = [aws_s3_bucket_public_access_block.files]
-  bucket = aws_s3_bucket.files.id
-  policy = <<POLICY
+  bucket     = aws_s3_bucket.files.id
+  policy     = <<POLICY
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -42,8 +42,8 @@ resource "aws_s3_bucket_website_configuration" "files" {
     suffix = "index.html"
   }
   error_document {
-     key = "index.html"
-#    key = "error.html"
+    key = "index.html"
+    #    key = "error.html"
   }
 }
 resource "aws_s3_bucket_cors_configuration" "files" {
@@ -60,24 +60,30 @@ variable "create_robots_txt" {
   default = true
 }
 
-resource "local_file" "robots-txt" {
-  count = var.create_robots_txt ? 1 : 0
-  content  = "User-agent: *\nDisallow: /\nAllow: /.well-known/"
-  filename = "${var.dist_folder}/robots.txt"
-}
-
 module "template_files" {
-  source = "hashicorp/dir/template"
+  source  = "hashicorp/dir/template"
   version = "v1.0.2"
 
   base_dir = var.dist_folder
-  depends_on = [local_file.robots-txt]
+}
+
+# robots.txt is uploaded directly as an S3 object rather than written into
+# dist_folder, so it never mutates the directory scanned by template_files'
+# fileset() call (which would otherwise produce an "inconsistent result" error).
+resource "aws_s3_object" "robots-txt" {
+  count         = var.create_robots_txt ? 1 : 0
+  bucket        = aws_s3_bucket.files.id
+  key           = "robots.txt"
+  content       = "User-agent: *\nDisallow: /\nAllow: /.well-known/"
+  content_type  = "text/plain"
+  cache_control = "no-cache"
+  etag          = md5("User-agent: *\nDisallow: /\nAllow: /.well-known/")
 }
 
 resource "aws_s3_object" "app_storage" {
-  for_each     = module.template_files.files
-  bucket       = aws_s3_bucket.files.id
-  key          = each.key
+  for_each = module.template_files.files
+  bucket   = aws_s3_bucket.files.id
+  key      = each.key
 
   content_type = (
     can(regex("\\.mjs$", each.value.source_path)) ? "application/javascript" :

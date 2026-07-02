@@ -18,8 +18,8 @@ data "archive_file" "lambda_zip" {
 }
 
 resource "aws_iam_role" "lambda_edge_role" {
-  count = var.lambda_src_dir != null ? 1 : 0
-  name_prefix  = "lambda_edge_execution_role"
+  count       = var.lambda_src_dir != null ? 1 : 0
+  name_prefix = "lambda_edge_execution_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -41,10 +41,28 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_edge_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
-resource "aws_iam_role_policy_attachment" "s3_readonly" {
-  count      = var.lambda_src_dir != null ? 1 : 0
-  role       = aws_iam_role.lambda_edge_role[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+# Scoped read-only access to just the site bucket, rather than the broad
+# AmazonS3ReadOnlyAccess managed policy (which grants read on every bucket
+# in the account).
+resource "aws_iam_role_policy" "s3_readonly" {
+  count = var.lambda_src_dir != null ? 1 : 0
+  name  = "s3-readonly-site-bucket"
+  role  = aws_iam_role.lambda_edge_role[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Action = [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      Resource = [
+        aws_s3_bucket.files.arn,
+        "${aws_s3_bucket.files.arn}/*"
+      ]
+    }]
+  })
 }
 
 resource "aws_lambda_function" "edge_lambda" {
@@ -62,7 +80,7 @@ resource "aws_lambda_function" "edge_lambda" {
   publish = true
 
   lifecycle {
-    prevent_destroy = false
+    prevent_destroy       = false
     create_before_destroy = true
   }
 }
