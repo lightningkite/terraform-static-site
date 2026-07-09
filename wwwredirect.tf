@@ -81,13 +81,26 @@ resource "aws_route53_record" "www_cloudfront" {
     evaluate_target_health = true
   }
 }
+resource "aws_route53_record" "www_cloudfront_ipv6" {
+  count   = var.enable_www_redirect ? 1 : 0
+  name    = "www.${var.domain_name}"
+  zone_id = data.aws_route53_zone.main.zone_id
+  type    = "AAAA"
+
+  alias {
+    name                   = aws_cloudfront_distribution.www[0].domain_name
+    zone_id                = aws_cloudfront_distribution.www[0].hosted_zone_id
+    evaluate_target_health = true
+  }
+}
 
 
 resource "aws_cloudfront_distribution" "www" {
-  count      = var.enable_www_redirect ? 1 : 0
-  enabled    = true
-  aliases    = ["www.${var.domain_name}"]
-  depends_on = [aws_s3_bucket.www]
+  count           = var.enable_www_redirect ? 1 : 0
+  enabled         = true
+  is_ipv6_enabled = var.enable_ipv6
+  aliases         = ["www.${var.domain_name}"]
+  depends_on      = [aws_s3_bucket.www]
 
   origin {
     connection_attempts = 3

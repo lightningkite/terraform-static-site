@@ -4,6 +4,10 @@ variable "domain_name_zone" {
 variable "domain_name" {
   type = string
 }
+variable "enable_ipv6" {
+  type    = bool
+  default = true
+}
 variable "content_security_policy" {
   type = map(list(string))
   default = {
@@ -93,6 +97,17 @@ resource "aws_route53_record" "web_cloudfront" {
     evaluate_target_health = true
   }
 }
+resource "aws_route53_record" "web_cloudfront_ipv6" {
+  name    = var.domain_name
+  zone_id = data.aws_route53_zone.main.zone_id
+  type    = "AAAA"
+
+  alias {
+    name                   = aws_cloudfront_distribution.main.domain_name
+    zone_id                = aws_cloudfront_distribution.main.hosted_zone_id
+    evaluate_target_health = true
+  }
+}
 
 # Cache policy for the static site. Replaces the legacy `forwarded_values` block:
 # cookies are never forwarded (they only fragment the cache on a static site),
@@ -122,6 +137,7 @@ resource "aws_cloudfront_cache_policy" "static" {
 resource "aws_cloudfront_distribution" "main" {
   depends_on          = [aws_s3_bucket.files]
   enabled             = true
+  is_ipv6_enabled     = var.enable_ipv6
   aliases             = [var.domain_name]
   default_root_object = "index.html"
 
