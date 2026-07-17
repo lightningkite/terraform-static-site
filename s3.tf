@@ -85,8 +85,12 @@ resource "aws_s3_object" "app_storage" {
   bucket   = aws_s3_bucket.files.id
   key      = each.key
 
+  # Overrides for extensions the hashicorp/dir/template MIME table doesn't cover.
+  # .wasm in particular must be application/wasm or browsers refuse
+  # WebAssembly.instantiateStreaming (breaks Kotlin/WASM apps).
   content_type = (
     can(regex("\\.mjs$", each.value.source_path)) ? "application/javascript" :
+    can(regex("\\.wasm$", each.value.source_path)) ? "application/wasm" :
     regex("[^\\/\\\\]+$", each.value.source_path) == "apple-app-site-association" ? "application/json" :
     each.value.content_type
   )
