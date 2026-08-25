@@ -63,6 +63,14 @@ variable "referrer_policy" {
   type    = string
   default = "same-origin"
 }
+variable "custom_headers" {
+  description = "Custom response headers added to the CloudFront response headers policy, keyed by header name."
+  type = map(object({
+    value    = string
+    override = optional(bool, true)
+  }))
+  default = {}
+}
 
 data "aws_route53_zone" "main" {
   name = var.domain_name_zone
@@ -224,8 +232,20 @@ resource "aws_cloudfront_response_headers_policy" "webapp_security_headers" {
       content_security_policy = join("; ", [
         for key, value in var.content_security_policy : "${key} ${join(" ", value)}"
       ])
-      #       content_security_policy = "frame-ancestors 'self'; default-src 'self'; img-src ${var.external_media_sources}; media-src ${var.external_media_sources}; script-src 'self' ${var.external_script_sources}; style-src 'self' 'unsafe-inline'; object-src 'none'; connect-src ${var.external_connections}"
       override = true
+    }
+  }
+  dynamic "custom_headers_config" {
+    for_each = length(var.custom_headers) > 0 ? [1] : []
+    content {
+      dynamic "items" {
+        for_each = var.custom_headers
+        content {
+          header   = items.key
+          value    = items.value.value
+          override = items.value.override
+        }
+      }
     }
   }
 }
