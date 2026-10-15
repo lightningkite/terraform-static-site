@@ -117,31 +117,10 @@ resource "aws_route53_record" "web_cloudfront_ipv6" {
   }
 }
 
-# Cache policy for the static site. Replaces the legacy `forwarded_values` block:
-# cookies are never forwarded (they only fragment the cache on a static site),
-# while query strings remain in the cache key to preserve cache-busting behavior.
-# TTLs bound the origin's Cache-Control (min_ttl=0 lets index.html stay no-cache;
-# max_ttl allows immutable hashed assets to cache for a year).
-resource "aws_cloudfront_cache_policy" "static" {
-  name        = "static-cache-${replace(var.domain_name, "/[^a-zA-Z0-9\\-]/", "-")}"
-  min_ttl     = 0
-  default_ttl = 86400
-  max_ttl     = 31536000
-
-  parameters_in_cache_key_and_forwarded_to_origin {
-    cookies_config {
-      cookie_behavior = "none"
-    }
-    headers_config {
-      header_behavior = "none"
-    }
-    query_strings_config {
-      query_string_behavior = "all"
-    }
-    enable_accept_encoding_gzip   = true
-    enable_accept_encoding_brotli = true
-  }
+data "aws_cloudfront_cache_policy" "static" {
+  name = "Managed-CachingOptimized"
 }
+
 resource "aws_cloudfront_distribution" "main" {
   depends_on          = [aws_s3_bucket.files]
   enabled             = true
@@ -165,7 +144,7 @@ resource "aws_cloudfront_distribution" "main" {
     target_origin_id           = "origin-${var.domain_name}"
     viewer_protocol_policy     = "redirect-to-https" # other options - https only, http
     response_headers_policy_id = aws_cloudfront_response_headers_policy.webapp_security_headers.id
-    cache_policy_id            = aws_cloudfront_cache_policy.static.id
+    cache_policy_id            = data.aws_cloudfront_cache_policy.static.id
 
     dynamic "lambda_function_association" {
       for_each = length(aws_lambda_function.edge_lambda) > 0 ? [1] : []

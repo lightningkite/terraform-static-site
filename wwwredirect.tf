@@ -123,7 +123,7 @@ resource "aws_cloudfront_distribution" "www" {
     cached_methods         = ["GET", "HEAD", "OPTIONS"]
     target_origin_id       = aws_s3_bucket.www[0].id
     viewer_protocol_policy = "redirect-to-https" # other options - https only, http
-    cache_policy_id        = aws_cloudfront_cache_policy.static.id
+    cache_policy_id        = data.aws_cloudfront_cache_policy.static.id
   }
 
   restrictions {
