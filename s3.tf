@@ -119,7 +119,6 @@ resource "aws_s3_object" "app_storage" {
   source  = each.value.source_path
   content = each.value.content
 
-  # Unless the bucket has encryption enabled, the ETag of each object is an
-  # MD5 hash of that object.
-  etag = each.value.digests.md5
+  # Use to determine changes to the file contents. No need to reupload files that haven't changed
+  source_hash = each.value.digests.md5
 }
